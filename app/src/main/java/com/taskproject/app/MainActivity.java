@@ -79,7 +79,7 @@ public class MainActivity extends AppCompatActivity {
     private View.OnClickListener view_user_click_listener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            Toast.makeText(getApplicationContext(), "Click", Toast.LENGTH_SHORT).show(); 
+            Toast.makeText(getApplicationContext(), "Click", Toast.LENGTH_SHORT).show();
         }
     };
 
