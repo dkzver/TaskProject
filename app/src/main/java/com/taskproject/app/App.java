@@ -3,8 +3,6 @@ package com.taskproject.app;
 import android.app.Application;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.util.Log;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 
@@ -45,7 +43,7 @@ public class App extends Application {
     }
 
     public interface TokenListener {
-        void onTken(String token);
+        void onToken(final String token);
     }
 
     public static void GetToken(TokenListener listener) {
@@ -57,7 +55,7 @@ public class App extends Application {
                         if (task.isSuccessful()) {
                             token = task.getResult();
                         }
-                        listener.onTken(token);
+                        listener.onToken(token);
                     }
                 });
     }

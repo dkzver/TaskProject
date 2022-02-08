@@ -19,29 +19,33 @@ public class MainViewModel extends ViewModel {
 
     public void bind(MainActivity activity) {
         SharedPreferences sharedPreferences = activity.getSharedPreferences("APP_PREFERENCES", Context.MODE_PRIVATE);
-        if(sharedPreferences.contains(User.KEY)) {
-            String unic = sharedPreferences.getString(User.KEY, "0");
-            App.DB.collection("users").document(unic)
-                    .get()
-                    .addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-                        @Override
-                        public void onComplete(Task<DocumentSnapshot> task) {
-                            System.out.println("onComplete");
-                            User user = null;
-                            if (task.isSuccessful() && task.getResult() != null) {
-                                Map<String, Object> map = task.getResult().getData();
-                                if(map != null) {
-                                    user = User.Create(map, task.getResult().getId());
-                                }
-                            } else {
-                                Log.w(App.TAG, "Error getting documents.", task.getException());
-                            }
-                            userMutableLiveData.setValue(user);
-                        }
-                    });
-        } else {
+        if(!sharedPreferences.contains(User.KEY)) {
             userMutableLiveData.setValue(null);
+            return;
         }
+        String unic = sharedPreferences.getString(User.KEY, "0");
+        if(unic.equals("0")) {
+            userMutableLiveData.setValue(null);
+            return;
+        }
+        App.DB.collection("users").document(unic)
+                .get()
+                .addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                    @Override
+                    public void onComplete(Task<DocumentSnapshot> task) {
+                        System.out.println("onComplete");
+                        User user = null;
+                        if (task.isSuccessful() && task.getResult() != null) {
+                            Map<String, Object> map = task.getResult().getData();
+                            if(map != null) {
+                                user = User.Create(map, task.getResult().getId());
+                            }
+                        } else {
+                            Log.w(App.TAG, "Error getting documents.", task.getException());
+                        }
+                        userMutableLiveData.setValue(user);
+                    }
+                });
     }
 
     public void setUser(FragmentActivity activity, User user) {

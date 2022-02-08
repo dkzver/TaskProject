@@ -30,21 +30,33 @@ public class User {
     public String email;
     public String social_id;
     public String password;
+    public String token;
     public String avatar;
 
     public User() {
 
     }
 
-    public User(Map<String, Object> map) {
+    public User(Map<String, Object> map, String unic) {
+        this.unic = unic;
         this.name = String.valueOf(map.get("name"));
         this.email = String.valueOf(map.get("email"));
         this.avatar = String.valueOf(map.get("avatar"));
     }
 
-    public static User Create(GoogleSignInAccount account) {
-
-        return null;
+    public static User Create(final GoogleSignInAccount account, final String token) {
+        User user = new User();
+        user.name = account.getDisplayName();
+        user.email = account.getEmail();
+        user.social_id = account.getId();
+        user.password = "";
+        user.token = token;
+        if(account.getPhotoUrl() == null) {
+            user.avatar = "https://firebasestorage.googleapis.com/v0/b/projecttask-340405.appspot.com/o/default_avatar.jpg?alt=media&token=860ca579-8973-43f9-8ad8-893ed94019e8";
+        } else {
+            user.avatar = String.valueOf(account.getPhotoUrl());
+        }
+        return user;
     }
 
     public static User Create(Map<String, Object> map, String unic) {
@@ -54,6 +66,7 @@ public class User {
         user.email = String.valueOf(map.get("email"));
         user.social_id = String.valueOf(map.get("social_id"));
         user.password = String.valueOf(map.get("password"));
+        user.token = String.valueOf(map.get("token"));
         user.avatar = String.valueOf(map.get("avatar"));
 
         return user;
@@ -118,16 +131,6 @@ public class User {
         } else {
             listener.onRead(null);
         }
-    }
-
-    public Map<String, Object> getMap() {
-        Map<String, Object> data = new HashMap<>();
-        data.put("name", name);
-        data.put("email", email);
-        data.put("social_id", social_id);
-        data.put("password", password);
-        data.put("avatar", avatar);
-        return data;
     }
 
     public String getKey() {

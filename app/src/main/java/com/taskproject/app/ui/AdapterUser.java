@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.taskproject.app.R;
 import com.taskproject.app.User;
+import com.taskproject.app.ui.users.UsersFragment;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -17,14 +18,19 @@ import java.util.List;
 
 public class AdapterUser extends RecyclerView.Adapter<HolderUser> {
     private List<User> userList = new ArrayList<>();
+    private UsersFragment fragment;
+
+    public AdapterUser(UsersFragment fragment) {
+
+        this.fragment = fragment;
+    }
+
     @NonNull
     @NotNull
     @Override
     public HolderUser onCreateViewHolder(@NonNull @NotNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_user, parent, false);
-
-        return new HolderUser(view);
+        return new HolderUser(LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.item_user, parent, false), fragment);
     }
 
     @Override

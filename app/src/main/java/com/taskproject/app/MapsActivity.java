@@ -150,52 +150,5 @@ public class MapsActivity extends FragmentActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_SIGN_IN) {
-            Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
-            System.out.println(task);
-            System.out.println("task");
-
-
-            try {
-                GoogleSignInAccount account = task.getResult(ApiException.class);
-                if (account != null) {
-                    final User user = User.Create(account);
-
-                    User.CheckRegister(user.email, user.social_id, this, new User.OnDatabaseListener<Long>() {
-                        @Override
-                        public void onRead(Long unic) {
-                            if (unic == null || unic.equals(Long.parseLong("0"))) {
-                                final Map<String, Object> map = user.getMap();
-                                final DocumentReference documentReference = App.DB.collection("users").document(user.getKey());
-                                documentReference.set(map)
-                                        .addOnSuccessListener(new OnSuccessListener<Void>() {
-                                            @Override
-                                            public void onSuccess(Void aVoid) {
-                                                textView.setText(user.name);
-//                                                User.Save(getApplicationContext(), user.unic);
-                                            }
-                                        })
-                                        .addOnFailureListener(new OnFailureListener() {
-                                            @Override
-                                            public void onFailure(@NonNull Exception e) {
-                                                Log.w(App.TAG, "Error adding document", e);
-                                            }
-                                        });
-                            } else {
-                                textView.setText(user.name);
-                                User.Save(getApplicationContext(), unic);
-                            }
-                        }
-                    });
-
-
-
-                }
-
-                logout(account);
-            } catch (ApiException e) {
-                Log.w(App.TAG, "signInResult:failed code=" + e.getStatusCode());
-            }
-        }
     }
 }

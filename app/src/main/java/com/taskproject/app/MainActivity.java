@@ -1,6 +1,7 @@
 package com.taskproject.app;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
@@ -37,6 +38,7 @@ import com.taskproject.app.ui.gallery.GalleryFragment;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.GravityCompat;
 import androidx.fragment.app.FragmentActivity;
@@ -76,11 +78,29 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private View.OnClickListener view_user_click_listener = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            Toast.makeText(getApplicationContext(), "Click", Toast.LENGTH_SHORT).show();
-        }
+    private View.OnClickListener GetUserClickListener(final FragmentActivity activity) {
+        return new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                builder.setTitle("Logout?");
+                builder.setPositiveButton("Logout", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        viewModel.setUser(activity, null);
+                        closeDrawer();
+                    }
+                });
+                builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+
+                    }
+                });
+                AlertDialog dialog = builder.create();
+                dialog.show();
+            }
+        };
     };
 
     private NavigationView.OnNavigationItemSelectedListener navigation_item_selected = new NavigationView.OnNavigationItemSelectedListener() {
@@ -120,7 +140,7 @@ public class MainActivity extends AppCompatActivity {
 
         App.GetToken(new App.TokenListener() {
             @Override
-            public void onTken(String token) {
+            public void onToken(String token) {
                 Toast.makeText(getApplicationContext(), token, Toast.LENGTH_SHORT).show();
             }
         });
@@ -139,7 +159,7 @@ public class MainActivity extends AppCompatActivity {
         header_view = nav_view.getHeaderView(0);
         view_user = header_view.findViewById(R.id.view_user);
         view_user.setVisibility(View.GONE);
-        view_user.setOnClickListener(view_user_click_listener);
+        view_user.setOnClickListener(GetUserClickListener(this));
         button_login = header_view.findViewById(R.id.button_login);
         button_login.setVisibility(View.GONE);
         button_login.setOnClickListener(login_click_listener);
@@ -223,54 +243,48 @@ public class MainActivity extends AppCompatActivity {
             try {
                 GoogleSignInAccount account = task.getResult(ApiException.class);
                 if (account != null) {
-                    final CollectionReference ref = App.DB.collection("users");
-                    final Query query = ref.whereEqualTo("email", account.getEmail()).
-                            whereEqualTo("social_id", account.getId());
-                    query.addSnapshotListener(this, new EventListener<QuerySnapshot>() {
+                    App.GetToken(new App.TokenListener() {
                         @Override
-                        public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
-                            String unic = "0";
-                            if(value != null && !value.isEmpty()) {
-                                List<DocumentSnapshot> documentReference = value.getDocuments();
-                                if(documentReference.size() > 0) {
-                                    DocumentSnapshot documentSnapshot = documentReference.get(0);
-                                    if(documentSnapshot != null) {
-                                        unic = documentSnapshot.getId();
+                        public void onToken(final String token) {
+                            final CollectionReference ref = App.DB.collection("users");
+                            final Query query = ref.whereEqualTo("email", account.getEmail()).
+                                    whereEqualTo("social_id", account.getId());
+                            query.addSnapshotListener(activity, new EventListener<QuerySnapshot>() {
+                                @Override
+                                public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
+                                    String unic = "0";
+                                    if(value != null && !value.isEmpty()) {
+                                        List<DocumentSnapshot> documentReference = value.getDocuments();
+                                        if(documentReference.size() > 0) {
+                                            DocumentSnapshot documentSnapshot = documentReference.get(0);
+                                            if(documentSnapshot != null) {
+                                                unic = documentSnapshot.getId();
+                                            }
+                                        }
+                                    }
+                                    final User user = User.Create(account, token);
+                                    if(unic.equals("0")) {
+                                        user.unic = String.valueOf(Calendar.getInstance().getTimeInMillis());
+                                        final DocumentReference documentReference = App.DB.collection("users").document(user.getKey());
+                                        Task<Void> taskSet = documentReference.set(user);
+                                        taskSet.addOnCompleteListener(new OnCompleteListener<Void>() {
+                                                    @Override
+                                                    public void onComplete(@NonNull @NotNull Task<Void> task) {
+                                                        if(!task.isSuccessful()) {
+                                                            Toast.makeText(activity.getApplicationContext(), "Error", Toast.LENGTH_SHORT).show();
+                                                            return;
+                                                        }
+                                                        viewModel.setUser(activity, user);
+                                                    }
+                                                });
+                                    } else {
+                                        user.unic = unic;
+                                        viewModel.setUser(activity, user);
                                     }
                                 }
-                            }
-                            final User user = new User();
-                            user.name = account.getDisplayName();
-                            user.email = account.getEmail();
-                            user.social_id = account.getId();
-                            user.password = "";
-                            user.avatar = String.valueOf(account.getPhotoUrl());
-                            if(unic.equals("0")) {
-                                user.unic = String.valueOf(Calendar.getInstance().getTimeInMillis());
-                                final Map<String, Object> map = user.getMap();
-                                final DocumentReference documentReference = App.DB.collection("users").document(user.getKey());
-                                documentReference.set(map)
-                                        .addOnSuccessListener(new OnSuccessListener<Void>() {
-                                            @Override
-                                            public void onSuccess(Void aVoid) {
-                                                viewModel.setUser(activity, user);
-                                            }
-                                        })
-                                        .addOnFailureListener(new OnFailureListener() {
-                                            @Override
-                                            public void onFailure(@NonNull Exception e) {
-                                                Log.w(App.TAG, "Error adding document", e);
-                                            }
-                                        });
-                            } else {
-                                user.unic = unic;
-                                viewModel.setUser(activity, user);
-                            }
+                            });
                         }
                     });
-
-
-
                 }
 
                 logout(account);

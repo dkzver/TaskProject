@@ -1,5 +1,6 @@
 package com.taskproject.app.ui.users;
 
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -8,6 +9,7 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
@@ -46,42 +48,47 @@ public class UsersFragment extends Fragment {
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         viewModel =
                 new ViewModelProvider(this).get(UsersViewModel.class);
-        adapterUser = new AdapterUser();
+        adapterUser = new AdapterUser(this);
         recycler_view = view.findViewById(R.id.recycler_view);
         recycler_view.setHasFixedSize(false);
         recycler_view.setLayoutManager(new LinearLayoutManager(requireActivity()));
         recycler_view.setAdapter(adapterUser);
-        Toast.makeText(requireActivity(), "Users", Toast.LENGTH_LONG).show();
-
-        App.DB.collection("users").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+        viewModel.bind(this);
+        viewModel.listMutableLiveData.observe(requireActivity(), new Observer<List<User>>() {
             @Override
-            public void onComplete(@NonNull @NotNull Task<QuerySnapshot> task) {
-                if (task.isSuccessful()) {
-                    QuerySnapshot querySnapshot = task.getResult();
-                    if (!querySnapshot.isEmpty()) {
-                        Map<String, Object> map = null;
-                        List<User> userList = new ArrayList<>();
-                        User user = null;
-                        for (DocumentSnapshot documentSnapshot : querySnapshot.getDocuments()) {
-                            map = documentSnapshot.getData();
-                            user = new User(map);
-                            userList.add(user);
-                        }
-                        adapterUser.update(userList);
-                        Log.d(App.TAG, "DocumentSnapshot data: " + querySnapshot.getDocuments());
-                    } else {
-                        Log.d(App.TAG, "No such document");
-                    }
-                } else {
-                    Log.d(App.TAG, "get failed with ", task.getException());
-                }
+            public void onChanged(List<User> userList) {
+                adapterUser.update(userList);
             }
         });
+
         super.onViewCreated(view, savedInstanceState);
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+    }
+
+    public void showDialog(String participant_unic) {
+        if(requireActivity() instanceof MainActivity) {
+            MainActivity activity = (MainActivity) requireActivity();
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+            builder.setTitle("Write");
+            builder.setPositiveButton("Write", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    viewModel.write(participant_unic, activity);
+                }
+            });
+            builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+
+                }
+            });
+            AlertDialog dialog = builder.create();
+            dialog.show();
+        }
     }
 }
